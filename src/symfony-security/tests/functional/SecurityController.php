@@ -13,20 +13,15 @@ declare(strict_types=1);
 
 namespace Webauthn\SecurityBundle\Tests\Functional;
 
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\User\UserInterface;
-use Twig\Environment;
+use Webauthn\PublicKeyCredentialRequestOptions;
 use Webauthn\SecurityBundle\Security\WebauthnUtils;
 
 final class SecurityController
 {
-    /**
-     * @var Environment
-     */
-    private $twig;
-
     /**
      * @var TokenStorageInterface
      */
@@ -37,45 +32,29 @@ final class SecurityController
      */
     private $webauthnUtils;
 
-    public function __construct(Environment $twig, TokenStorageInterface $tokenStorage, WebauthnUtils $webauthnUtils)
+    public function __construct(TokenStorageInterface $tokenStorage, WebauthnUtils $webauthnUtils)
     {
-        $this->twig = $twig;
         $this->tokenStorage = $tokenStorage;
         $this->webauthnUtils = $webauthnUtils;
     }
 
-    public function login(): Response
+    public function options(Request $request): Response
     {
-        $error = $this->webauthnUtils->getLastAuthenticationError();
-        $lastUsername = $this->webauthnUtils->getLastUsername();
+        $data = new PublicKeyCredentialRequestOptions(
+            random_bytes(16),
+            60000,
+            $request->getHost(),
+            [],
+            'preferred',
+            null
+        );
+        $request->getSession()->set('__SESSION_PARAMETER__', $data);
 
-        $page = $this->twig->render('login.html.twig', [
-            'last_username' => $lastUsername,
-            'error' => $error,
-        ]);
-
-        return new Response($page);
+        return new JsonResponse($data);
     }
 
-    public function assertion(Request $request): Response
+    public function assertion(Request $request): void
     {
-        /** @var UserInterface $user */
-        $user = $this->tokenStorage->getToken()->getUser();
-        $publicKeyCredentialRequestOptions = $this->webauthnUtils->generateRequest($user);
-        $request->getSession()->set('_webauthn.public_key_credential_request_options', $publicKeyCredentialRequestOptions);
-        $error = $this->webauthnUtils->getLastAuthenticationError();
-        $page = $this->twig->render('assertion.html.twig', [
-            'error' => $error,
-            'user' => $user,
-            'publicKeyCredentialRequestOptions' => $publicKeyCredentialRequestOptions,
-        ]);
-
-        return new Response($page);
-    }
-
-    public function abort(): Response
-    {
-        return new Response('Abort');
     }
 
     public function logout(): Response

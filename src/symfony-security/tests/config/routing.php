@@ -20,15 +20,13 @@ use Webauthn\SecurityBundle\Tests\Functional\SecurityController;
 $routes = new RouteCollection();
 
 // Security
-$routes->add('app_login', new Route('/login', [
-    '_controller' => [SecurityController::class, 'login'],
-]));
+$routes->add('app_login_options', new Route('/login/options', [
+    '_controller' => [SecurityController::class, 'options'],
+], [], [], null, [], ['POST']));
 $routes->add('app_login_assertion', new Route('/login/assertion', [
     '_controller' => [SecurityController::class, 'assertion'],
-]));
-$routes->add('app_login_abort', new Route('/login/abort', [
-    '_controller' => [SecurityController::class, 'abort'],
-]));
+], [], [], null, [], ['POST']));
+
 $routes->add('app_logout', new Route('/logout', [
     '_controller' => [SecurityController::class, 'logout'],
 ]));

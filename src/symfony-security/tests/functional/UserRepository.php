@@ -13,10 +13,11 @@ declare(strict_types=1);
 
 namespace Webauthn\SecurityBundle\Tests\Functional;
 
-use Symfony\Component\Security\Core\User\UserInterface;
+use Webauthn\Bundle\Repository\PublicKeyCredentialUserEntityRepository;
 use Webauthn\PublicKeyCredentialDescriptor;
+use Webauthn\PublicKeyCredentialUserEntity;
 
-final class UserRepository
+final class UserRepository implements PublicKeyCredentialUserEntityRepository
 {
     /**
      * @var User[]
@@ -26,19 +27,45 @@ final class UserRepository
     public function __construct()
     {
         $this->users = [
-            'admin' => new User('uuid', 'admin', ['ROLE_ADMIN', 'ROLE_USER'], [new PublicKeyCredentialDescriptor(
+            'admin' => new User('foo', 'admin', ['ROLE_ADMIN', 'ROLE_USER'], [new PublicKeyCredentialDescriptor(
                 PublicKeyCredentialDescriptor::CREDENTIAL_TYPE_PUBLIC_KEY,
                 \Safe\base64_decode('eHouz/Zi7+BmByHjJ/tx9h4a1WZsK4IzUmgGjkhyOodPGAyUqUp/B9yUkflXY3yHWsNtsrgCXQ3HjAIFUeZB+w==', true)
             )]),
         ];
     }
 
-    public function findByUsername(string $username): ?UserInterface
+    public function findOneByUsername(string $username): ?PublicKeyCredentialUserEntity
     {
-        if (array_key_exists($username, $this->users)) {
+        if ('admin' === $username) {
+            return new PublicKeyCredentialUserEntity('admin', 'foo', 'Administrator');
+        }
+
+        return null;
+    }
+
+    public function findByUsername(string $username): ?User
+    {
+        if (\array_key_exists($username, $this->users)) {
             return $this->users[$username];
         }
 
         return null;
+    }
+
+    public function findOneByUserHandle(string $userHandle): ?PublicKeyCredentialUserEntity
+    {
+        if ('foo' === $userHandle) {
+            return new PublicKeyCredentialUserEntity('admin', 'foo', 'Administrator');
+        }
+
+        return null;
+    }
+
+    public function createUserEntity(string $username, string $displayName, ?string $icon): PublicKeyCredentialUserEntity
+    {
+    }
+
+    public function saveUserEntity(PublicKeyCredentialUserEntity $userEntity): void
+    {
     }
 }

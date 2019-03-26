@@ -12,9 +12,10 @@ declare(strict_types=1);
  */
 
 use Psr\Log\LoggerInterface;
-use Symfony\Bridge\PsrHttpMessage\HttpMessageFactoryInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\ref;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Security\Core\Authentication\AuthenticationManagerInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -23,12 +24,16 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Http\HttpUtils;
 use Symfony\Component\Security\Http\Session\SessionAuthenticationStrategyInterface;
 use Webauthn\AuthenticatorAssertionResponseValidator;
+use Webauthn\Bundle\Repository\PublicKeyCredentialUserEntityRepository;
+use Webauthn\Bundle\Service\PublicKeyCredentialRequestOptionsFactory;
+use Webauthn\PublicKeyCredentialLoader;
+use Webauthn\PublicKeyCredentialSourceRepository;
 use Webauthn\SecurityBundle\Security\Authentication\Provider\MetaWebauthnProvider;
 use Webauthn\SecurityBundle\Security\EntryPoint\WebauthnEntryPoint;
 use Webauthn\SecurityBundle\Security\Firewall\WebauthnListener;
+use Webauthn\SecurityBundle\Security\WebauthnAuthenticator;
+use Webauthn\SecurityBundle\Security\WebauthnAuthenticatorFactory;
 use Webauthn\SecurityBundle\Security\WebauthnUtils;
-use Webauthn\PublicKeyCredentialLoader;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\ref;
 
 return function (ContainerConfigurator $container) {
     $container->services()->set(MetaWebauthnProvider::class)
@@ -67,7 +72,31 @@ return function (ContainerConfigurator $container) {
     $container->services()->set(WebauthnUtils::class)
         ->private()
         ->args([
-            ref(\Webauthn\Bundle\Service\PublicKeyCredentialRequestOptionsFactory::class),
-            ref(\Symfony\Component\HttpFoundation\RequestStack::class),
+            ref(PublicKeyCredentialRequestOptionsFactory::class),
+            ref(RequestStack::class),
         ]);
+
+    $container->services()->set(WebauthnAuthenticatorFactory::class)
+        ->private()
+        ->args([
+            ref(AuthenticatorAssertionResponseValidator::class),
+            ref(PublicKeyCredentialLoader::class),
+            ref(PublicKeyCredentialSourceRepository::class),
+            ref(PublicKeyCredentialUserEntityRepository::class),
+            ref(RequestStack::class),
+            ref('webauthn_security.http_message_factory'),
+        ]);
+
+    $container->services()->set('__---__')
+        ->private()
+        ->class(WebauthnAuthenticator::class)
+        ->factory([
+            ref(WebauthnAuthenticatorFactory::class),
+            'create',
+        ])
+        ->args([
+            'app_login_assertion',
+            '__SESSION_PARAMETER__',
+        ])
+    ;
 };

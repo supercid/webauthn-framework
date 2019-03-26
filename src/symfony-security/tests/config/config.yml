@@ -83,6 +83,7 @@ webauthn_security:
     http_message_factory: 'Symfony\Bridge\PsrHttpMessage\Factory\PsrHttpFactory'
 
 webauthn:
+    user_repository: 'Webauthn\SecurityBundle\Tests\Functional\UserRepository'
     credential_repository: 'Webauthn\SecurityBundle\Tests\Functional\PublicKeyCredentialSourceRepository'
     android_safetynet:
         enabled: true
@@ -101,20 +102,24 @@ security:
 
     firewalls:
         main:
+            guard:
+                authenticators:
+                    - '__---__'
             anonymous: ~
-            webauthn:
-                login_path: /login
-                login_check_path: /login
-                assertion_path: /login/assertion
-                assertion_check_path: /login/assertion
-                abort_path: /login/abort
+#            webauthn:
+#                login_path: /login
+#                login_check_path: /login
+#                assertion_path: /login/assertion
+#                assertion_check_path: /login/assertion
+#                abort_path: /login/abort
             logout:
                 path: /logout
                 target: /
 
     access_control:
         - { path: ^/logout,  roles: IS_AUTHENTICATED_ANONYMOUSLY, requires_channel: https }
-        - { path: ^/login,  roles: IS_AUTHENTICATED_ANONYMOUSLY, requires_channel: https }
+        - { path: ^/login/options,  roles: IS_AUTHENTICATED_ANONYMOUSLY, requires_channel: https }
+        - { path: ^/login/assertion,  roles: IS_AUTHENTICATED_ANONYMOUSLY, requires_channel: https }
         - { path: ^/admin,  roles: 'ROLE_ADMIN', requires_channel: https }
         - { path: ^/page,   roles: 'ROLE_USER', requires_channel: https }
         - { path: ^/,       roles: IS_AUTHENTICATED_ANONYMOUSLY, requires_channel: https }
